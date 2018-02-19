@@ -1,0 +1,1558 @@
+% !TEX encoding = IsoLatin
+\documentclass[a4paper]{book}
+
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage [margin=3.0cm] {geometry}
+\usepackage{url}
+\usepackage[latin1]{inputenc}
+
+% ----------- Beginning of document!
+
+\begin{document}
+
+\title{PUDER - yet another unit cell refinement program\\
+PUDER is a swedish word for very fine powder.}
+
+\author{Lars Eriksson \\ (lars.eriksson@mmk.su.se)}
+\date{\today}
+
+\maketitle 
+ 
+\tableofcontents
+
+% ------ document begins..
+\newpage
+\chapter{The indexing problem}
+
+\section{A few geometrical considerations}
+
+Each and every reflection in a diffraction pattern has a specific angular position ($2\theta$) can be related to a spacing-value or d-value, by the Bragg equation.
+
+\begin{equation*}
+2d \sin \theta = \lambda 
+\qquad \text{or} \qquad 4 d^2 \sin^2 \theta = \lambda^2
+\qquad \text{or} \qquad \frac{1}{d^2} = d^{*2} = \frac{4}{\lambda^2}\sin^2 \theta
+\end{equation*}
+
+The reflections in a diffraction pattern correspond to specific d-values related to the unit cell parameters. The $2\theta$ values depends not only on the unit cell parameters but also on the wavelength of the radiation in use. If a radiation-independent spacing measure is required, the d-value format (or $1/d^2$) is strongly recommended. PUDER will use $1/d^2$ internally for most calculations.
+
+The unit cell parameters $a$, $b$, $c$, $\alpha$, $\beta$ and $\gamma$ are related to the scattering angle ($2\theta$) for each reflection in the diffraction pattern by the linear relations given below. The $a_{ij}$ parameters are wavelength dependent parameters proportional to the reciprocal metric tensor parameters $g_{ij}$. The only difference is that the $sin^2(\theta)$ relation is dependent on the wavelength of the radiation while the $d^{*2}$ is defined only in terms of the reciprocal lattice. Both quantities have been in use in different indexing programs  and are given here mostly for historical reasons. Note that the Q defined below means $4 \frac{\sin^2 \theta}{\lambda^2}$ in contrast to several other alternative definitions.
+
+\begin{equation}
+sin^2 \theta = h^2 a_{11} + k^2 a_{22} + l^2 a_{33} + hk a_{12} + hl a_{13} + kl a_{23}
+\end{equation}
+
+or
+
+\begin{equation}
+Q = \frac{1}{d^2} = h^2 g_{11} + k^2 g_{22} + l^2 g_{33} + hk g_{12} + hl g_{13} + kl g_{23}
+\end{equation}
+
+These relations are valid for all reflection. The $a_{ij}$ or $g_{ij}$ parameters are the same for all reflections as they are related to the metric of the lattice. The only difference between the different reflections are the different \verb+hkl+ values. 
+
+\newpage
+\section{Real space and reciprocal space}
+
+The relations between reciprocal and direct cell parameters can be expressed such that to every real space unit cell vector $\vec v$ a reciprocal space unit cell vector $\vec v^{*}$ can be constructed, such that $\vec v \cdot \vec v^{*} = 1$ which means that the sizes are inverse to each other. Further relations between the two dual spaces are that a unit cell base vector of one space is perpendicular to all other unit cell base vectors of the other space.
+
+\subsection{Calculation of a reciprocal vector}
+
+Use the expression for the unit cell volume and divide both sides by V.
+\begin{equation}
+\frac{(\vec a \times \vec b) \cdot \vec c}{V} = 1
+\end{equation}
+Right multiply with a reciprocal version of the vector $\vec c$.
+\begin{equation}
+\frac{(\vec a \times \vec b) \cdot \vec c \cdot \vec c^{*}}{V} = \frac{(\vec a \times \vec b)}{V} = \vec c^{*}
+\end{equation}
+All three basis vectors for the reciprocal space can be expressed as below.
+\begin{equation}
+\vec a^{*} =  \frac{(\vec b \times \vec c)}{V}  \qquad
+\vec b^{*} =  \frac{(\vec c \times \vec a)}{V}  \qquad
+\vec c^{*} =  \frac{(\vec a \times \vec b)}{V} 
+\end{equation}
+Note the order or the real space vectors. A right hand coordinate system in real space should correspond to a right hand system in the reciprocal space. Another consequence of these relations is that the reciprocal vectors are perpendicular to the ''other two'' basis vectors in real space. 
+\begin{equation}
+\vec a^{*} \perp \vec b \text{  and  } \vec a^{*} \perp \vec c \qquad
+\vec b^{*} \perp \vec a \text{ and } \vec b^{*} \perp \vec c \qquad
+\vec c^{*} \perp \vec a \text{ and } \vec c^{*} \perp \vec b 
+\end{equation}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=60mm]{pictures/dual_space_vectors.png}
+\caption{Two dimensional example of real space unit cell base vector and the corresponding reciprocal space unit cell vectors. The lengths of the vectors are not drawn to correct scale, but  $\mathbf{a} \cdot \mathbf{a^*} = 1$ and $\mathbf{b} \cdot \mathbf{b^*} = 1$. For the angular construction use the properties: $\mathbf{a} \perp \mathbf{b^*}$ and $\mathbf{b} \perp \mathbf{a^*}$}
+\label{default}
+\end{center}
+\end{figure}
+
+\subsection{Orthogonality of real space to reciprocal space}
+
+The orthogonality relation between the reciprocal space basis vectors and the real space basis vectors, can be formulated as below, following Int. tab. vol A. sec. 5.2.2. 
+
+\begin{equation}
+  \begin{pmatrix}
+    \mathbf {a^*}  \\
+    \mathbf {b^*}  \\
+    \mathbf {c^*}  \\ 
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    \mathbf {a}, \mathbf {b}, \mathbf {c}
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    \mathbf {a^*} \cdot \mathbf {a} & \mathbf {a^*} \cdot \mathbf {b} & \mathbf {a^*} \cdot \mathbf {c} \\
+    \mathbf {b^*} \cdot \mathbf {a} & \mathbf {b^*} \cdot \mathbf {b} & \mathbf {b^*} \cdot \mathbf {c} \\
+    \mathbf {c^*} \cdot \mathbf {a} & \mathbf {c^*} \cdot \mathbf {b} & \mathbf {c^*} \cdot \mathbf {c}   
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    1 & 0 & 0 \\
+    0 & 1 & 0 \\
+    0 & 0 & 1 
+  \end{pmatrix} 
+   =  \mathbf {I}
+\end{equation}
+
+\newpage
+\section{Indexing  with known cell parameters}
+
+With known unit cell parameters are, the process of finding h,k,l values for each reflection constitute a simple version of the indexing problem. 
+It can be described by the points below.
+
+\begin{itemize}
+\item Generate all possible unique h,k,l values consistent with the selected symmetry of the structure, the unit cell parameters and the maximum index limits.
+\item Calculate the $2\theta$ value or other function of  $2\theta$ for each of the generated h,k,l.
+\item For each of the observed reflections, assign the h,k,l's from the closest calculated position within some chosen acceptance window.
+\item If only one of the calculated positions is close enough to the observed reflection, then the observed reflection is given those indexes.
+\item If several calculated reflections positions are close to an observed reflection position several indices can be assigned to one of the observed reflection and thus this very reflection is said to be multiple indexed.
+\end{itemize}
+
+\subsection{Criteria for a line to be considered as indexed}
+
+If a calculated line position is within some predefined distance from an observed line, then this observed line is given the same indexes as the calculated line. This is sometimes as an acceptance window in $2\theta$. Preferably there should only be one calculated line close to each observed line as otherwise the observed lines will be given multiple indexes.
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[width=100mm]{pictures/indexing_window.png}
+\caption{Three observed lines with 1, 2 or 3 calculated lines within the acceptance window. The observed lines thus inherit the indexes for the corresponding calculated lines. The first one has unique indexes, while the second and the third lines has 2 or 3 possible indexations due to the fact that those observed lines are close to several theoretical lines.}
+\label{default}
+\end{center}
+\end{figure}
+
+\section{Distance of a reflection from the origin}
+The distance between the origin in reciprocal space and a certain reflection can be formulated in terms of the basis vectors of reciprocal space (the reciprocal space unit cell) and the corresponding h, k, l indices of the reflection. The h,k,l are the integer-valued coordinates of the reflections in reciprocal space.
+
+The square of the reciprocal distance vector is computed as shown below.
+
+\begin{equation}
+Q=|d^{*}_{hkl}|^2 = \mathbf{d^{*}}_{hkl} \cdot  \mathbf{d^{*}}_{hkl} = 
+(h \mathbf{a^{*}} + k \mathbf{b^{*}} + l \mathbf{c^{*}}) \cdot (h \mathbf{a^{*}} + k \mathbf{b^{*}} + l \mathbf{c^{*}})
+\end{equation}
+Using vector notation the following expressions can be obtained. 
+\begin{equation}
+  (h \mathbf{a^{*}} + k \mathbf{b^{*}} + l \mathbf{c^{*}}) =  
+  \begin{pmatrix}
+    h, k, l
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \mathbf {a^*}  \\
+    \mathbf {b^*}  \\
+    \mathbf {c^*}  \\ 
+  \end{pmatrix} 
+  \qquad \text{or} \qquad
+  (h \mathbf{a^{*}} + k \mathbf{b^{*}} + l \mathbf{c^{*}}) =  
+  \begin{pmatrix}
+    \mathbf {a^*} , \mathbf {b^*} , \mathbf {c^*}
+  \end{pmatrix} 
+  \begin{pmatrix}
+    h \\
+    k \\
+    l \\
+  \end{pmatrix} 
+\end{equation}
+Formulating $\mathbf{d^{*}}_{hkl} \cdot  \mathbf{d^{*}}_{hkl}$ could be done as shown below.
+\begin{equation}
+  \begin{pmatrix}
+    h, k, l
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \mathbf {a^*}  \\
+    \mathbf {b^*}  \\
+    \mathbf {c^*}  \\ 
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \mathbf {a^*} , \mathbf {b^*} , \mathbf {c^*}
+  \end{pmatrix} 
+  \begin{pmatrix}
+    h \\
+    k \\
+    l
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    h , k , l
+  \end{pmatrix}
+  \begin{pmatrix}
+    \mathbf {a^*} \cdot \mathbf {a^*} & \mathbf {a^*} \cdot \mathbf {b^*} & \mathbf {a^*} \cdot \mathbf {c^*} \\
+    \mathbf {b^*} \cdot \mathbf {a^*} & \mathbf {b^*} \cdot \mathbf {b^*} & \mathbf {b^*} \cdot \mathbf {c^*} \\
+    \mathbf {c^*} \cdot \mathbf {a^*} & \mathbf {c^*} \cdot \mathbf {b^*} & \mathbf {c^*} \cdot \mathbf {c^*}   
+  \end{pmatrix} 
+  \begin{pmatrix}
+    h \\
+    k \\
+    l
+  \end{pmatrix} 
+\end{equation}
+The square matrix is called the reciprocal metric tensor. It can also be formulated with scalar elements.
+\begin{equation}
+  \mathbf{G^*} =
+  \begin{pmatrix}
+    \mathbf {a^*} \cdot \mathbf {a^*} & \mathbf {a^*} \cdot \mathbf {b^*} & \mathbf {a^*} \cdot \mathbf {c^*} \\
+    \mathbf {b^*} \cdot \mathbf {a^*} & \mathbf {b^*} \cdot \mathbf {b^*} & \mathbf {b^*} \cdot \mathbf {c^*} \\
+    \mathbf {c^*} \cdot \mathbf {a^*} & \mathbf {c^*} \cdot \mathbf {b^*} & \mathbf {c^*} \cdot \mathbf {c^*}   
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    {a^*}^2 & a^*b^*\cos{\gamma^*} & a^*c^*\cos{\beta^*} \\
+    b^*a^*\cos{\gamma^*} & {b^*}^2 & b^*c^*\cos{\alpha^*} \\
+    c^*a^*\cos{\beta^*} & c^*b^*\cos{\alpha^*} & {c^*}^2 \\
+  \end{pmatrix} 
+\end{equation}
+The squared distance of a reflection with respect to the origin may also be formulated as below.
+\begin{equation}
+  Q = \mathbf{d^{*}}_{hkl} \cdot  \mathbf{d^{*}}_{hkl}
+  = 
+  \begin{pmatrix}
+    h, k, l
+  \end{pmatrix} 
+  \mathbf{G^*} 
+  \begin{pmatrix}
+    h \\
+    k \\
+    l
+  \end{pmatrix} 
+\end{equation}
+Expanding this expression for Q as function of reciprocal unit cell constants yields:
+\begin{equation}
+Q = |d^{*}_{hkl}|^2 = 
+h^2 a^{*2} + k^2 b^{*2} + l^2 c^{*2} + 2hk a^{*}b^{*}cos \gamma^{*} + 2hl a^{*}c^{*}cos \beta^{*} + 2kl b^{*}c^{*}cos \alpha^{*} 
+\end{equation}
+Q expressed as function of reciprocal tensor parameters, $g_{ij}$ is shown below. 
+\begin{equation}
+Q =  
+h^2 g_{11} + k^2 g_{22} + l^2 g_{33} + 2hk g_{12} + 2hl g_{13} + 2kl g_{23} 
+\end{equation}
+Usually the factor 2 are included in the last three terms, $g_{12}$, $g_{13}$, $g_{23}$.
+\begin{equation}
+Q = 
+h^2 g_{11} + k^2g_{22} + l^2g_{33} + hkg_{12} + hlg_{13} + klg_{23} 
+\end{equation}
+
+\section{Distance of a point in real space from the origin}
+The distance between the origin in real space and a certain point (x,y,z) can be formulated in terms of the basis vectors of real space (the real space unit cell) and the corresponding x,y,z coordinates of the point. 
+
+The square of the distance vector is computed as shown below.
+
+\begin{equation}
+|d_{xyz}|^2 = \mathbf{r}_{xyz} \cdot  \mathbf{r}_{xyz} = 
+(x \mathbf{a} + y \mathbf{b} + z \mathbf{c}) \cdot (x \mathbf{a} + y \mathbf{b} + z \mathbf{c})
+\end{equation}
+Using vector notation the following expressions can be obtained. 
+\begin{equation}
+  (x \mathbf{a} + y \mathbf{b} + z \mathbf{c}) =  
+  \begin{pmatrix}
+    x, y, z
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \mathbf {a}  \\
+    \mathbf {b}  \\
+    \mathbf {c}  \\ 
+  \end{pmatrix} 
+  \qquad \text{or} \qquad
+  (x \mathbf{a} + y \mathbf{b} + z \mathbf{c}) =  
+  \begin{pmatrix}
+    \mathbf {a} , \mathbf {b} , \mathbf {c}
+  \end{pmatrix} 
+  \begin{pmatrix}
+    x \\
+    y \\
+    z \\
+  \end{pmatrix} 
+\end{equation}
+Formulating $\mathbf{r}_{xyz} \cdot  \mathbf{r}_{xyz}$ could be done as shown below.
+\begin{equation}
+  \begin{pmatrix}
+    x, y, z
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \mathbf {a}  \\
+    \mathbf {b}  \\
+    \mathbf {c}  \\ 
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \mathbf {a} , \mathbf {b} , \mathbf {c}
+  \end{pmatrix} 
+  \begin{pmatrix}
+    x \\
+    y \\
+    z
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    x , y , z
+  \end{pmatrix}
+  \begin{pmatrix}
+    \mathbf {a} \cdot \mathbf {a} & \mathbf {a} \cdot \mathbf {b} & \mathbf {a} \cdot \mathbf {c} \\
+    \mathbf {b} \cdot \mathbf {a} & \mathbf {b} \cdot \mathbf {b} & \mathbf {b} \cdot \mathbf {c} \\
+    \mathbf {c} \cdot \mathbf {a} & \mathbf {c} \cdot \mathbf {b} & \mathbf {c} \cdot \mathbf {c}   
+  \end{pmatrix} 
+  \begin{pmatrix}
+    x \\
+    y \\
+    z
+  \end{pmatrix} 
+\end{equation}
+The square matrix is called the metric tensor. It can also be formulated with scalar elements.
+\begin{equation}
+  \mathbf{G} =
+  \begin{pmatrix}
+    \mathbf {a} \cdot \mathbf {a} & \mathbf {a} \cdot \mathbf {b} & \mathbf {a} \cdot \mathbf {c} \\
+    \mathbf {b} \cdot \mathbf {a} & \mathbf {b} \cdot \mathbf {b} & \mathbf {b} \cdot \mathbf {c} \\
+    \mathbf {c} \cdot \mathbf {a} & \mathbf {c} \cdot \mathbf {b} & \mathbf {c} \cdot \mathbf {c}   
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    {a}^2 & ab\cos{\gamma} & ac\cos{\beta} \\
+    ba\cos{\gamma} & {b}^2 & bc\cos{\alpha} \\
+    ca\cos{\beta} & cb\cos{\alpha} & {c}^2 \\
+  \end{pmatrix} 
+\end{equation}
+The squared distance of a reflection with respect to the origin may also be formulated as below.
+\begin{equation}
+  Q = \mathbf{d^{*}}_{hkl} \cdot  \mathbf{d^{*}}_{hkl}
+  = 
+  \begin{pmatrix}
+    h, k, l
+  \end{pmatrix} 
+  \mathbf{G^*} 
+  \begin{pmatrix}
+    h \\
+    k \\
+    l
+  \end{pmatrix} 
+\end{equation}
+
+\section{Quadratic forms for different crystal systems}
+
+The complicated expression given above could be considerably simplified depending on the symmetry properties of the lattice. Some basis vectors may be orthogonal, thus the cosine terms vanish. Other relations may also exist in high symmetry crystal systems, simplifying the expressions for the corresponding quadratic forms.\
+
+\begin{description}
+\item[Cubic system] (a=b=c and $\alpha$=$\beta$=$\gamma$=90$^{\circ}$)
+
+\begin{equation}
+Q = (h^2 + k^2 + l^2) g_{11}
+\end{equation}
+
+\item[Trigonal system] (a=b=c and $\alpha$=$\beta$=$\gamma$ $\ne$ 90$^{\circ}$)
+
+\begin{equation}
+Q = (h^2 + k^2 + l^2) g_{11} + (hk + hl + kl) g_{12}
+\end{equation}
+
+\item[Tetragonal system] (a=b $\ne$ c and  $\alpha$=$\beta$=$\gamma$=90$^{\circ}$)
+
+\begin{equation}
+Q = (h^2 + k^2 ) g_{11} + l^2  g_{33}
+\end{equation}
+
+\item[Hexagonal system] (a=b $\ne$ c,  $\alpha$=$\beta$=$\gamma$=90$^{\circ}$ and $\gamma$=120$^{\circ}$)
+
+\begin{equation}
+Q = (h^2 + hk + k^2 ) g_{11} + l^2  g_{33}
+\end{equation}
+
+\item[Orthorhombic system] (a $\ne$ b $\ne$ c and  $\alpha$=$\beta$=$\gamma$=90$^{\circ}$)
+
+\begin{equation}
+Q = h^2 g_{11} + k^2 g_{22} + l^2  g_{33}
+\end{equation}
+
+\item[Monoclinic system] (b axis unique setting:a $\ne$ b $\ne$ c, $\alpha$=$\gamma$=90$^{\circ}$ and $\beta$ $\ne$ 90$^{\circ}$)
+
+\begin{equation}
+Q = h^2 g_{11} + k^2 g_{22} + l^2  g_{33} + hl g_{13}
+\end{equation}
+
+\item[Triclinic system] (no symmetry relations between the cell parameters)
+
+\begin{equation}
+Q = h^2 g_{11} + k^2 g_{22} + l^2  g_{33} + hk g_{12} + hl g_{13} + kl g_{23}
+\end{equation}
+
+\end{description}
+
+The quadratic form can also be defined in terms of $sin^2(\theta)$ and the corresponding $a_{ij}$ parameter if the wavelength dependence is requested. The wavelength enters in a scaling factor. The relation between Q and  $sin^2(\theta)$ is:
+
+\begin{equation}
+Q = \frac{4}{\lambda^2}sin^2 \theta
+\end{equation}
+
+The wavelength dependence is automatically taken care of when reading spacing data into PUDER, but note that the wavelength need to have been entered before spacing data are entered as  $sin^2(\theta)$, $\theta$ or $2\theta$.
+The default wavelength is $Cu K_{\alpha 1}$ ($\lambda$=1.5405981 \AA.)
+
+
+\section{Indexing, without unknown cell parameters}
+
+Several different indexing programs using slightly different working principles are available. Two well known programs are TREOR and DICVOL that both will be briefly described below. They are based on slightly different principles. 
+
+\subsection{TREOR}
+
+TREOR is based on the TRial and ErrOR principle. The procedure could be described by a few steps. 
+\begin{itemize}
+\item
+Some index combination for low angle lines are generated. . 
+\item
+For each of these index combinations, solve for the cell parameters using.
+\item
+Check if the rest of lines can be indexed with every set of cell parameters. This usually ends with en error, thus the name TRial and ErrOR.
+\item
+If a unit cell can index most of the other lines of the diffraction pattern, those cell parameters are used for a least square fitting of the cell parameters to the observed lines. 
+\end{itemize}
+
+Somewhat different sets of index combinations are generated dependent on the tried symmetry. TREOR systematically tries to solve the indexing problem from high symmetry down to low symmetry. Note that the high symmetry searches, down to orthorhombic symmetry may be rather quick, the monoclinic tests may take not so few seconds while the triclinic tests may run for quite long time.
+In principle one cannot accept unindexed lines from a well crystalline single phase powder. 
+
+\subsubsection{Creating an input file to TREOR}
+
+Creating an input file to TREOR with PUDER using the present data set is done with the EXPORT command  with the ''TRE'' qualifier. 
+
+\begin{verbatim}
+EXPORT TRE filename
+\end{verbatim}
+
+\subsection{DICVOL}
+
+DICVOL is an acronym for DICotomy of VOLume space. A linear space spanned by the n real space unit cell parameters are constructed. The dimensionality equals the number of unique cell parameters. Some preset limits are defined for the lower and upper limit of the volume space to be searched. 
+\begin{itemize}
+\item
+The n-dimensional space is divided into small domains with a size of approximately 0.5\AA $ $ for cell edges and $1^\circ$ for cell angles.
+\item
+For each of these domains an attempt is made to index all diffraction lines with the error limits derived from the domain sizes. Large size of the domains in the cell parameter phase space give large size of the acceptance windows for each individual line to become indexed.
+\item
+If enough many lines are possible to index for certain domain in volume space, the cell parameters defining that very domain is subjected to a dichotomy procedure, i.e. they are divided in two parts along each dimension. Each of these smaller domains are then used for indexing of all diffraction lines with more strict acceptance limits.
+\item
+The dichotomy procedure is repeated up to the sixth level. The cell parameters for the domains indexing enough many lines are finally used for least square refinement of the cell parameters.
+\end{itemize}      
+
+\subsection{Creating an input file to DICVOL}
+
+Creating an input file to DICVOL with PUDER using the present data set is done with the EXPORT command with the qualifier ''LOU''. The allowed number of unindexed  lines is set to ''1'' and estimation as well as refinement of zero point error are used. For more information about the available parameters to DICVOL, see the separate manual for DICVOL.
+
+\begin{verbatim}
+EXPORT LOU filename
+\end{verbatim}
+
+\section{Solution of cell parameters}
+
+Depending on the crystals system investigated, the indices (hkl) for one, two, three, four or six base lines need to be set with some systematic procedure. Solving the equation system below will give the ''cell parameters'', $g_{ij}$ which may be used to test if the entire set of lines can be indexed. 
+
+\subsubsection*{Equations for the solution of cell parameters for cubic symmetry}
+
+\begin{equation}
+  (h^2 + k^2 + l^2) \cdot g_{11} = Q
+\end{equation}
+
+\subsubsection*{Equations for the solution of cell parameters for trigonal symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    (h_1^2 + k_1^2 + l_1^2) & (h_1k_1 + h_1l_1 + k_1l_1) \\ 
+    (h_2^2 + k_2^2 + l_2^2) & (h_2k_2 + h_2l_2 + k_2l_2) 
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{12} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    Q_1 \\ 
+    Q_2 
+  \end{pmatrix} 
+\end{equation}
+
+\subsubsection*{Equations for the solution of cell parameters for tetragonal symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    h_1^2 + k_1^2 & l_1^2  \\ 
+    h_2^2 + k_2^2 & l_2^2  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{33} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    Q_1 \\ 
+    Q_2 
+  \end{pmatrix} 
+\end{equation}
+
+\subsubsection*{Equations for the solution of cell parameters for hexagonal symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    (h_1^2 + h_1k_1 + k_1^2) & l_1^2  \\ 
+    (h_2^2 + h_2k_2 + k_2^2) & l_2^2  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{33} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    Q_1 \\ 
+    Q_2 
+  \end{pmatrix} 
+\end{equation}
+
+\subsubsection*{Equations for the solution of cell parameters for orthorhombic symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    h_1^2 & k_1^2 & l_1^2  \\ 
+    h_2^2 & k_2^2 & l_2^2  \\ 
+    h_3^2 & k_3^2 & l_3^2  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{22} \\ 
+    g_{33} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    Q_1 \\ 
+    Q_2 \\ 
+    Q_3 
+  \end{pmatrix} 
+\end{equation}
+
+\subsubsection*{Equations for the solution of cell parameters for monoclinic symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    h_1^2 & k_1^2 & l_1^2 & h_1l_1 \\ 
+    h_2^2 & k_2^2 & l_2^2 & h_2l_2 \\ 
+    h_3^2 & k_3^2 & l_3^2 & h_3l_3 \\
+    h_4^2 & k_4^2 & l_4^2 & h_4l_4  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{22} \\ 
+    g_{33} \\
+    g_{13} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    Q_1 \\ 
+    Q_2 \\
+    Q_3 \\ 
+    Q_4 
+  \end{pmatrix} 
+\end{equation}
+
+\subsubsection*{Equations for the solution of cell parameters for triclinic symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    h_1^2 & k_1^2 & l_1^2 & h_1k_1 & h_1l_1 & k_1l_1 \\ 
+    h_2^2 & k_2^2 & l_2^2 & h_2k_2 & h_2l_2 & k_2l_2 \\ 
+    h_3^2 & k_3^2 & l_3^2 & h_3k_3 & h_3l_3 & k_3l_3 \\
+    h_4^2 & k_4^2 & l_4^2 & h_4k_4 & h_4l_4 & k_4l_4 \\
+    h_5^2 & k_5^2 & l_5^2 & h_5k_5 & h_5l_5 & k_5l_5 \\
+    h_6^2 & k_6^2 & l_6^2 & h_6k_6 & h_6l_6 & k_6l_6  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{22} \\ 
+    g_{33} \\
+    g_{12} \\
+    g_{13} \\
+    g_{23} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+    Q_1 \\ 
+    Q_2 \\
+    Q_3 \\
+    Q_4 \\
+    Q_5 \\ 
+    Q_6 
+  \end{pmatrix} 
+\end{equation}
+
+\section{Least square refinement of cell parameters}
+
+The least square procedure is linear in the sense that as long as there are unique hkl indexes assigned to each line the cell parameters can be obtained by solving equations similar to the ones below. The sums should be done over all reflections. After the solution of the least square equations another cycle of indexing with following least square are done. In this respect the refinement may be viewed as strongly nonlinear if the indexes should happen to vary between consecutive cycles. 
+
+\subsubsection*{Least square equation for cubic symmetry}
+
+\begin{equation}
+    \sum  (h^2+k^2+l^2)^2  \cdot g_{11} = \sum  (h^2+k^2+l^2)Q 
+\end{equation}
+
+\subsection*{Least square equations for trigonal symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    \sum  (h^2+k^2+l^2)^2 & \sum (h^2+k^2+l^2)(hk+hl+kl) \\  
+    \sum  (h^2+k^2+l^2)(hk+hl+kl) & \sum (hk+hl+kl)^2  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{12} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+   \sum  ((h^2+k^2+l^2)Q \\ 
+   \sum (hk+hl+kl)^2Q 
+  \end{pmatrix} 
+\end{equation}
+
+\subsection*{Least square equations for tetragonal symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    \sum  (h^2+k^2)^2  & \sum (h^2+k^2)l^2  \\  
+    \sum  (h^2+k^2)l^2 & \sum l^4  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{33} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+   \sum  (h^2+k^2)Q \\ 
+   \sum l^2Q
+  \end{pmatrix} 
+\end{equation}
+
+\subsection*{Least square equations for hexagonal symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    \sum  (h^2+hk+k^2)^2 & \sum (h^2+hk+k^2)i^2  \\  
+    \sum  (h^2+hk+k^2)l^2 & \sum l^4  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{33} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+   \sum  (h^2+hk+k^2)Q \\ 
+   \sum l^2Q
+  \end{pmatrix} 
+\end{equation}
+
+\subsection*{Least square equations for orthorhombic symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    \sum h^4 & \sum h^2k^2 & \sum h^2l^2  \\ 
+    \sum h^2k^2 & \sum k^4 & \sum k^2l^2  \\ 
+    \sum h^2l^2 & \sum k^2l^2 & \sum l^4  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{22} \\ 
+    g_{33} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+   \sum h^2Q \\ 
+   \sum k^2Q \\ 
+   \sum l^2Q 
+  \end{pmatrix} 
+\end{equation}
+
+\subsection*{Least square equations for monoclinic symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    \sum h^4    & \sum h^2k^2 & \sum h^2l^2 & \sum h^3l   \\ 
+    \sum h^2k^2 & \sum k^4    & \sum k^2l^2 & \sum hk^2l  \\ 
+    \sum h^2l^2 & \sum k^2l^2 & \sum l^4    & \sum hl^3   \\
+    \sum h^3l   & \sum hk^2l  & \sum hl^3   & \sum h^2l^2  
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{22} \\ 
+    g_{33} \\
+    g_{13} 
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+   \sum h^2Q \\ 
+   \sum k^2Q \\ 
+   \sum l^2Q \\
+   \sum hlQ  
+  \end{pmatrix} 
+\end{equation}
+
+\subsection*{Least square equations for triclinic symmetry}
+
+\begin{equation}
+  \begin{pmatrix}
+    \sum h^4    & \sum h^2k^2 & \sum h^2l^2 & \sum h^3k  & \sum h^3l   & \sum h^2kl \\ 
+    \sum h^2k^2 & \sum k^4    & \sum k^2l^2 & \sum hk^3  & \sum hk^2l  & \sum h^2kl \\ 
+    \sum h^2l^2 & \sum k^2l^2 & \sum l^4    & \sum hkl^2 & \sum hl^3   & \sum kl^3  \\
+    \sum h^3k   & \sum hk^3   & \sum hkl^2  & \sum h^2k^2& \sum h^2kl  & \sum hk^2l \\
+    \sum h^3l   & \sum hk^2l  & \sum hl^3   & \sum h^2kl & \sum h^2l^2 & \sum hkl^2 \\
+    \sum h^2kl  & \sum k^3l   & \sum kl^3   & \sum hk^2l & \sum h^2kl  & \sum k^2l^2
+  \end{pmatrix} 
+  \cdot
+  \begin{pmatrix}
+    g_{11} \\ 
+    g_{22} \\ 
+    g_{33} \\
+    g_{12} \\
+    g_{13} \\
+    g_{23}
+  \end{pmatrix} 
+  =
+  \begin{pmatrix}
+   \sum h^2Q \\ 
+   \sum k^2Q \\ 
+   \sum l^2Q \\
+   \sum hkQ  \\
+   \sum hlQ  \\
+   \sum klQ 
+  \end{pmatrix} 
+\end{equation}
+
+\section{Figure of merit criteria}
+
+Several figure of merits (FOM) have been defined for describing how plausible a certain indexing is or how accurate a  certain unit cell describes the set of observed lines. Two very well known are the de Woolf FOM and the Smith and Snyder index, both named after the authors of the articles describing these FOM's.
+
+\subsection{de Woolf FOM}
+
+The de Woolf figure of merit, M is defined as shown below. According to de Woolf (19XX) a plausible indexing should have ...
+
+\begin{equation}
+M_n = \frac{sin^2{\theta}_n}{N_{Theory}(n) \cdot <sin^2{\theta}>_n}
+\end{equation}
+
+\subsection{Smith and Snyder FOM}
+
+The Smith and Snyder figure of merit, F is defined as shown below. 
+
+\begin{equation}
+F_n = \frac{1}{N_{Theory}(n) \cdot <\Delta 2{\theta}>_n}
+\end{equation}
+
+\subsection{Sources of errors}
+
+Errors of cell parameters may be composed of contribution of both statistical errors and systematic errors of peak positions. Statistical errors may be minimized if some peak profile fitting procedure is used for finding the peak positions but systematic errors may be more difficult to detect. A very efficient way to detect systematic errors in the spacing data is by mixing in an internal standard where the line positions are known with high accuracy. An alternative may be if the indexing program can handle zero offsets of different size. Different indexing programs are more or less sensitive to errors in the spacing data. TREOR is very dependent on highly accurate peak positions for the low angle lines for a successful indexing while DICVOL is less sensitive for systematic errors, however sometimes at the expense of long computing times. Powder diffraction data with high accuracy usually indexes and refines easily while spacing data with large error may fail to index. 
+
+\section{References}
+
+Dicvol-referenser\\
+Treor-referenser\\
+Smith, \& Snyder, . ()\\
+de Woolf, . \\\\
+
+to be completed
+
+\chapter{Runnig PUDER}
+
+PUDER is a command line program. It is not capable of handling the data in any fancy manner with GUI's, window-boxes etc. Everything must be keyed from keyboard or read from disk-files. The normal way to start puder is just entering the name in a terminal window, assuming that the search path finds the program.  
+
+\begin{verbatim}
+$ puder
+\end{verbatim}
+
+Most commands can be read either from keyboard or as part of a script file. There are only a few commands that require user input from the keyboard.
+Some examples will illustrate the different possibilities of this program.
+
+All input lines can have a maximum length of 80 characters. 
+They can be longer but they are not interpreted beyond the 80:th character.
+Everything after an exclamation mark, " !" on each line is treated as a comment and thus not interpreted.
+
+\section{Installation of the program}
+
+There should be no dynamically linked libraries and the executable program file just need to be accessible in the PATH string.
+
+\subsection{Settings of CMD parameters for Windows}
+In windows one should preferably set the parameters for the CMD terminal window in which PUDER could be run, to allow a rather long scroll back area. In the example below a 2000 line buffer has been set.
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[width=140mm]{pictures/cmdpic.png}
+\caption{Properties setting in a CMD terminal window in Windows.}
+\label{default}
+\end{center}
+\end{figure}
+
+\chapter{Examples}
+\section{Example 1 (spacing data found on the file LS04.PUD)}
+
+Open a terminal window, start puder in this very window and read the content of the file LS04.PUD into puder.
+The content of the file is shown below.
+ 
+\begin{verbatim}
+===================================================================
+! test data from JCPDS round robin on cell parameter refinement 
+! LS#04 = Mn3O4 in I41/amd (141)
+! CuKa1 (1.5405981 Å) is used if no other wavelength set.
+
+cell 5.75864 5.75864 9.46731 90 90 90   ! The cell parameters
+system tetragonal                       ! Crystal system
+
+! Reflexion conditions for I41/amd (141)
+
+Lattice I                         ! First the lattice centring
+
+condition input hh0:h=2n          ! and then for each subgroup
+condition input 0k0:k=2n          ! of reflections a reflection
+condition input 00l:l=4n          ! condition should be given.
+condition input hhl:2h+l=4n
+condition input hhl:l=2n
+condition input 0kl:k+l=2n
+condition input hk0:h=2n
+condition input hk0:k=2n
+
+2theta                    ! 2theta is used as spacing measure.
+data 17.987               ! one spacing value on each line.
+data 28.894
+data 31.019
+data 32.314
+\end{verbatim}
+\qquad $\Downarrow$
+\begin{verbatim}
+data 77.551
+data 80.076
+data 80.477
+data 86.522
+
+exit
+===================================================================
+\end{verbatim}
+
+\begin{table}[h]
+\caption{Refinement of the unit cell parameters could be done with the set of commands shown below.}
+\begin{center}
+\begin{tabular}{ll}
+
+Command &
+Comment \\
+\hline
+FILE LS04.pud &
+Read the instructions file (ls04.pud) shown above.\\
+DELTA 0.1 &
+Set acceptance window for indexing as 0.1 degree 2$\theta$. \\
+INDEX &
+Index the lines with the present cell parameters. \\
+WRITE &
+Write the lines, just to check that indexing looks ok. \\
+CYCLE 5 &
+Do five cycles of iterative least square refinement. \\
+REFINE &
+Refine the unit cell parameters and write them on screen. \\
+\hline
+\end{tabular}
+\end{center}
+\label{default}
+\end{table}%
+
+Open a terminal window, start puder in this very window and read the content of the file LS04.PUD into puder.
+The output on screen, partly sorted, is shown below.
+ 
+\begin{verbatim}
+===================================================================
+$ puder
+ Welcome to PUDER, version: 2017-05-30
+ 
+ Puder>file LS_04.PUD
+ 
+ (the input file is echoed to the display)
+ 
+ Puder>delta 0.1       
+ Puder>index
+ Puder>write
+
+ (the list of indexed lines is shown)
+ 
+ Puder>cy 5
+ 
+ Cycle results.
+ 
+   0:   5.75864   5.75864   9.46731   90.0000   90.0000   90.0000
+   1:   5.75864   5.75864   9.46732   90.0000   90.0000   90.0000
+   2:   5.75864   5.75864   9.46732   90.0000   90.0000   90.0000
+   3:   5.75864   5.75864   9.46732   90.0000   90.0000   90.0000
+   4:   5.75864   5.75864   9.46732   90.0000   90.0000   90.0000
+   5:   5.75864   5.75864   9.46732   90.0000   90.0000   90.0000
+ 
+ (again the list of indexed lines is shown)
+
+ M(20) =    124.1 Average epsilon =0.00008333
+ F(20) =     48.9 (0.012041  34)
+
+ Puder>refine
+ a ......:   5.75864 +/-    0.00024    p/sig(p):    24388.5
+ b ......:   5.75864 +/-    0.00024    p/sig(p):    24388.5
+ c ......:   9.46732 +/-    0.00059    p/sig(p):    15991.6
+ alfa ...:  90.00000
+ beta ...:  90.00000
+ gamma ..:  90.00000
+ Volume .:   313.955
+
+===================================================================
+\end{verbatim}
+
+\newpage
+\section{Example 2 (found on file: LS06.PUD)}
+
+Refinement of unit cell parameters with preset locked hkl-indexes is another possibility with PUDER.
+Here below we illustrate with an example of that with data from hydroxyapatite, where the indexes all have been locked. 
+\begin{verbatim}
+===================================================================
+! Test data from JCPDS round robin on cell parameter refinement
+! LS#06 with indexes given for each line.
+! This is hexagonal Hydroxyapatite Ca5(OH)(PO4)3 in P63/m (176)
+
+ cell 9.41930 9.41930 6.88318 90 90 120
+
+ ! reflection conditions for space-group P63/m (176)
+
+ condition input 00l:l=2n
+
+ 2theta
+
+ hkldata 1  0  0  10.821
+ hkldata 1  0  1  16.808
+ hkldata 2  0  0  21.733
+ hkldata 1  1  1  22.839
+ hkldata 0  0  2  25.847
+    .
+    .
+    .
+ hkldata 4  4  0  81.726
+ hkldata 4  3  3  83.414
+ hkldata 4  2  4  84.257
+ hkldata 1  1  6  87.447
+ hkldata 3  2  5  88.006
+===================================================================
+\end{verbatim}
+Start puder and read the above mentioned file.
+\begin{verbatim}
+Puder>FILE ls06.pud
+\end{verbatim}
+After PUDER have read the cell parameters from the input file the following will be echoed to the screen
+\begin{verbatim}
+ Real cell .....:   9.41930   9.41930   6.88318   90.0000   90.0000  120.0000
+ Rec. cell .....:  0.122589  0.122589  0.145282   90.0000   90.0000   60.0000
+ Gij parameters : 0.0150280 0.0150280 0.0211068 0.0150280 0.0000000 0.0000000
+\end{verbatim}
+Refine the unit cell parameters with the command ''ref''
+\begin{verbatim}
+Puder>ref
+ a ......:   9.41929 +/-    0.00036    p/sig(p):    26498.8
+ b ......:   9.41929 +/-    0.00036    p/sig(p):    26498.8
+ c ......:   6.88318 +/-    0.00043    p/sig(p):    16082.7
+ alfa ...:  90.00000
+ beta ...:  90.00000
+ gamma ..: 120.00000
+ Volume .:   528.879
+\end{verbatim}
+Write the data with the command ''write'', note the ''L'' at the end of each line indicating that the indexes of the line are locked. Without the ''L'' the indexes for each line would be set in every refinement cycle to those of the calculated line most close to the observed line.
+
+\newpage
+\begin{verbatim}
+Puder>write
+   N   H   K   L     Q-obs    Q-calc     Q-del  2Th-obs 2Th-calc  2Th-del  #
+   1   1   0   0  0.014984  0.015028 -0.000044  10.8210  10.8370  -0.0160  1 L
+   2   1   0   1  0.035999  0.036135 -0.000136  16.8080  16.8399  -0.0319  1 L
+   3   2   0   0  0.059897  0.060112 -0.000215  21.7330  21.7725  -0.0395  1 L
+   4   1   1   1  0.066065  0.066191 -0.000126  22.8390  22.8610  -0.0220  1 L
+   5   0   0   2  0.084298  0.084427 -0.000129  25.8470  25.8671  -0.0201  1 L
+   .   .   .   .   .         .         .          .        .        .      . .
+   .   .   .   .   .         .         .          .        .        .      . .
+   .   .   .   .   .         .         .          .        .        .      . .
+  46   4   4   0  0.721393  0.721345  0.000049  81.7260  81.7226   0.0034  1 L
+  47   4   3   3  0.746010  0.745997  0.000012  83.4140  83.4132   0.0008  1 L
+  48   4   2   4  0.758336  0.758493 -0.000157  84.2570  84.2677  -0.0107  1 L
+  49   1   1   6  0.805123  0.804928  0.000195  87.4470  87.4337   0.0133  1 L
+  50   3   2   5  0.813338  0.813202  0.000136  88.0060  87.9967   0.0092  1 L
+
+ Number of observed lines .........:   50
+ Number of calculated lines .......:   50
+ Number of single indexed lines ...:   50
+ Number of unindexed lines ........:    0
+\end{verbatim}
+If necessary (or wanted) one can unlock the indexes with the command ''unlock all'' and use the normal refinement of unit cell parameters after indexing. First ''index'' and then ''refine''. 
+Note that the default $\Delta 2\theta$ window for accepting a line as indexed may have to be set to a larger value than 0.03 which is the default value. If one keeps 0.03 then some lines will become unindexed. Use either ''set delta 0.05'' or ''delta 0.05'' for setting the delta parameter.
+
+\newpage
+\section{Example 3 (found on file: CALCITE.PUD)}
+
+Use the \emph{FILE} command to read data from a previously prepared file into PUDER.
+Note that the previous use of HKLDATA has been commented out and ''normal'' data has been created. The HKLDATA text is kept for clarity and comparison with of old ad new hkl values.
+
+\begin{verbatim}
+Puder>file data\calcite.pud
+
+ ! Calcite JCPDS 5-586, i.e. source of data is PDF-4 00-005-0586.
+
+ system hex
+ cell 4.989 4.989 17.062 90 90 120
+
+ Real cell .....:   4.98900   4.98900  17.06200   90.0000   90.0000  120.0000
+ Rec. cell .....:  0.231449  0.231449  0.058610   90.0000   90.0000   60.0000
+ Gij parameters : 0.0535688 0.0535688 0.0034351 0.0535688 0.0000000 0.0000000
+
+ dvalues
+
+ data  3.86  ! hkldata  0  1  2   3.86
+ data  3.035 ! hkldata  1  0  4   3.035
+ data  2.845 ! hkldata  0  0  6   2.845
+ data  2.495 ! hkldata  1  1  0   2.495
+ data  2.285 ! hkldata  1  1  3   2.285
+ data  2.095 ! hkldata  2  0  2   2.095
+ data  1.927 ! hkldata  0  2  4   1.927
+ data  1.913 ! hkldata  0  1  8   1.913
+ data  1.875 ! hkldata  1  1  6   1.875
+ data  1.626 ! hkldata  2  1  1   1.626
+ data  1.604 ! hkldata  1  2  2   1.604
+ data  1.587 ! hkldata  1  0 10   1.587
+ data  1.525 ! hkldata  2  1  4   1.525
+ data  1.518 ! hkldata  2  0  8   1.518
+ data  1.510 ! hkldata  1  1  9   1.510
+ data  1.473 ! hkldata  1  2  5   1.473
+ data  1.440 ! hkldata  3  0  0   1.440
+ data  1.422 ! hkldata  0  0 12   1.422
+ data  1.356 ! hkldata  2  1  7   1.356
+ data  1.339 ! hkldata  0  2 10   1.339
+
+ exit
+\end{verbatim}
+\newpage
+Now index the spacing data and write the lines to the display.
+\begin{verbatim}
+ Puder>index
+ Puder>write
+
+   N   H   K   L     Q-obs    Q-calc     Q-del  2Th-obs 2Th-calc  2Th-del  #
+   1              0.067116                      23.0224                    0
+   2   1   0   4  0.108563  0.108530  0.000033  29.4056  29.4011   0.0045  1
+   3   0   0   6  0.123548  0.123664 -0.000116  31.4184  31.4336  -0.0151  1
+   4   1   1   0  0.160642  0.160706 -0.000064  35.9663  35.9737  -0.0075  1
+   5   1   1   3  0.191526  0.191622 -0.000096  39.4019  39.4123  -0.0103  1
+   6   2   0   2  0.227841  0.228016 -0.000175  43.1458  43.1631  -0.0174  1
+   7   2   0   4  0.269300  0.269237  0.000063  47.1239  47.1180   0.0059  1
+   8   1   0   8  0.273256  0.273416 -0.000159  47.4898  47.5045  -0.0147  1
+   9   1   1   6  0.284444  0.284370  0.000074  48.5135  48.5067   0.0067  1
+  10   2   1   1  0.378233  0.378417 -0.000184  56.5545  56.5695  -0.0150  1
+  11   2   1   2  0.388679  0.388722 -0.000043  57.4017  57.4051  -0.0034  1
+  12   1   0  10  0.397051  0.397079 -0.000029  58.0748  58.0771  -0.0023  1
+  13   2   1   4  0.429992  0.429943  0.000049  60.6779  60.6741   0.0038  1
+  14   2   0   8  0.433967  0.434122 -0.000155  60.9874  60.9994  -0.0121  1
+  15   1   1   9  0.438577  0.438950 -0.000373  61.3452  61.3741  -0.0289  1
+  16   2   1   5  0.460887  0.460859  0.000028  63.0601  63.0580   0.0021  1
+  17   3   0   0  0.482253  0.482119  0.000134  64.6783  64.6682   0.0101  1
+  18   0   0  12  0.494539  0.494655 -0.000116  65.5990  65.6077  -0.0087  1
+  19              0.543852                      69.2311                    0
+  20   2   0  10  0.557749  0.557786 -0.000037  70.2384  70.2411  -0.0026  1
+
+ Number of observed lines .........:   20
+ Number of calculated lines .......:   18
+ Number of single indexed lines ...:   18
+ Number of unindexed lines ........:    2
+\end{verbatim}
+Note that two of the lines (no. 1 and no. 19) were unindexed. 
+In order for these two lines to be indexed one may try to set a larger acceptance window parameter, the biggest allowed discrepancy between calculated and observed positions.
+Another possibility is (of course) that the unindexed lines can be explained as impurity lines.
+In the example below the acceptance window $0.1^{\circ}$ is used. The default value is $0.03^{\circ}$, thus it must be changed with the \emph{delta} command. 
+
+\begin{verbatim}
+ Puder>delta 0.1
+\end{verbatim}
+
+\newpage
+\begin{verbatim}
+ Puder>index
+ Puder>write
+
+   N   H   K   L     Q-obs    Q-calc     Q-del  2Th-obs 2Th-calc  2Th-del  #
+   1   1   0   2  0.067116  0.067309 -0.000193  23.0224  23.0560  -0.0336  1
+   2   1   0   4  0.108563  0.108530  0.000033  29.4056  29.4011   0.0045  1
+   3   0   0   6  0.123548  0.123664 -0.000116  31.4184  31.4336  -0.0151  1
+   4   1   1   0  0.160642  0.160706 -0.000064  35.9663  35.9737  -0.0075  1
+   5   1   1   3  0.191526  0.191622 -0.000096  39.4019  39.4123  -0.0103  1
+   6   2   0   2  0.227841  0.228016 -0.000175  43.1458  43.1631  -0.0174  1
+   7   2   0   4  0.269300  0.269237  0.000063  47.1239  47.1180   0.0059  1
+   8   1   0   8  0.273256  0.273416 -0.000159  47.4898  47.5045  -0.0147  1
+   9   1   1   6  0.284444  0.284370  0.000074  48.5135  48.5067   0.0067  1
+  10   2   1   1  0.378233  0.378417 -0.000184  56.5545  56.5695  -0.0150  1
+  11   2   1   2  0.388679  0.388722 -0.000043  57.4017  57.4051  -0.0034  1
+  12   1   0  10  0.397051  0.397079 -0.000029  58.0748  58.0771  -0.0023  1
+  13   2   1   4  0.429992  0.429943  0.000049  60.6779  60.6741   0.0038  1
+  14   2   0   8  0.433967  0.434122 -0.000155  60.9874  60.9994  -0.0121  1
+  15   1   1   9  0.438577  0.438950 -0.000373  61.3452  61.3741  -0.0289  1
+  16   2   1   5  0.460887  0.460859  0.000028  63.0601  63.0580   0.0021  1
+  17   3   0   0  0.482253  0.482119  0.000134  64.6783  64.6682   0.0101  1
+  18   0   0  12  0.494539  0.494655 -0.000116  65.5990  65.6077  -0.0087  2
+  19   2   1   7  0.543852  0.543302  0.000550  69.2311  69.1911   0.0400  1
+  20   2   0  10  0.557749  0.557786 -0.000037  70.2384  70.2411  -0.0026  1
+
+ Number of observed lines .........:   20
+ Number of calculated lines .......:   21
+ Number of single indexed lines ...:   19
+ Number of unindexed lines ........:    0
+\end{verbatim}
+Note that the absolute values for the deviations in $2\theta$ for line no. 1 and no. 19 are larger than the default value $0.03^{\circ}$ $2\theta$, thus these lines were not indexed with the previous acceptance window of $0.03^{\circ}$. Also note that line no. 18 got two possible indexations. The best is shown.
+Refine the unit cell parameters
+\begin{verbatim}
+ Puder>ref
+ a ......:   4.98865 +/-    0.00050    p/sig(p):    10012.3
+ b ......:   4.98865 +/-    0.00050    p/sig(p):    10012.3
+ c ......:  17.06476 +/-    0.00271    p/sig(p):     6286.9
+ alfa ...:  90.00000
+ beta ...:  90.00000
+ gamma ..: 120.00000
+ Volume .:   367.787
+\end{verbatim}
+One more refinement will produce slightly smaller s.u.'s of the cell parameters. 
+\begin{verbatim}
+ Puder>ref
+ a ......:   4.98865 +/-    0.00048    p/sig(p):    10355.3
+ b ......:   4.98865 +/-    0.00048    p/sig(p):    10355.3
+ c ......:  17.06476 +/-    0.00262    p/sig(p):     6502.3
+ alfa ...:  90.00000
+ beta ...:  90.00000
+ gamma ..: 120.00000
+ Volume .:   367.787
+\end{verbatim}
+
+\newpage
+\section{Example 4 (Zn metal plate)}
+
+A piece of zink metal has been mounted in a diffractometer first correct but then with a considerable height error. This will give a large zero point error. Since the compound is known one can (most probably) index the peaks (in principle) and thus compute the $2\theta$ errors for each line. With these spacing errors available a correction curve could be computed and applied to the peak positions.
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[width=120mm]{pictures/zink_pattern.png}
+\caption{Powder diffraction pattern of a piece of zink metal where  $\sqrt{I_{obs}}$ = f ($2\theta$)}
+\label{default}
+\end{center}
+\end{figure}
+
+\subsection{Zn plate properly mounted}
+
+Here below we show the least square refinement of peak positions from a zinc metal sample that has been mounted correctly i.e. since it was measured in reflection geometry this means that the sample was at a correct height position.
+
+\begin{verbatim}
+C:\Users\lerik\Dropbox\puder>puder
+ Welcome to PUDER, version: 2014-02-17
+
+ Puder>file zn.pud
+ ! This is Zink metal at a reasonably correct height position
+
+ sys hexagonal
+ cell 2.67 2.67 4.95 90 90 120
+
+
+ Real cell .....:   2.67000   2.67000   4.95000   90.0000   90.0000  120.0000
+ Rec. cell .....:  0.432472  0.432472  0.202020   90.0000   90.0000   60.0000
+ Gij parameters : 0.1870321 0.1870321 0.0408122 0.1870322-0.0000000-0.0000000
+
+
+ 2theta
+ data    36.2933   !  0.1218     3036.3       17.3      22.84     1
+ data    39.0019   !  0.1092     2099.4       17.8      21.16     1
+ data    43.2252   !  0.1165    11417.9       18.7      48.60     1
+ data    54.3173   !  0.1256     2882.2       20.8      21.90     1
+   .
+  .  some lines deleed
+  .
+ data   116.3381   !  0.1726     1041.4       34.0     141.55     1
+ data   127.4274   !  0.1869     1247.5       39.4     165.76     1
+ data   131.7964   !  0.2160      269.8       42.1      22.20     1
+ data   138.8674   !  0.1973      396.2       47.0      34.51     1
+
+ delta 0.1   ! This is the error window.
+ cycle 5     ! Do five cycles of least squares.
+
+ Cycle results.
+
+   0:   2.67000   2.67000   4.95000   90.0000   90.0000  120.0000
+   1:   2.66474   2.66474   4.94855   90.0000   90.0000  120.0000
+   2:   2.66517   2.66517   4.94841   90.0000   90.0000  120.0000
+   3:   2.66517   2.66517   4.94841   90.0000   90.0000  120.0000
+   4:   2.66517   2.66517   4.94841   90.0000   90.0000  120.0000
+   5:   2.66517   2.66517   4.94841   90.0000   90.0000  120.0000
+
+   N   H   K   L     Q-obs    Q-calc     Q-del  2Th-obs 2Th-calc  2Th-del  #
+   1   0   0   2  0.163478  0.163353  0.000124  36.2933  36.2790   0.0143  1
+   2   1   0   0  0.187807  0.187711  0.000096  39.0019  38.9915   0.0104  1
+   3   1   0   1  0.228640  0.228549  0.000091  43.2252  43.2162   0.0090  1
+   4   1   0   2  0.351139  0.351064  0.000075  54.3173  54.3111   0.0062  1
+   5   1   0   3  0.555274  0.555256  0.000018  70.0595  70.0582   0.0013  1
+   6   1   1   0  0.563163  0.563133  0.000030  70.6291  70.6269   0.0022  1
+   7   0   0   4  0.653441  0.653413  0.000027  77.0237  77.0218   0.0019  1
+   8   1   1   2  0.726506  0.726486  0.000019  82.0771  82.0758   0.0013  1
+   9   2   0   0  0.750849  0.750844  0.000004  83.7451  83.7448   0.0003  1
+  10   2   0   1  0.791695  0.791683  0.000012  86.5327  86.5319   0.0008  1
+  11   1   0   4  0.841115  0.841124 -0.000009  89.8951  89.8957  -0.0006  1
+  12   2   0   2  0.914162  0.914198 -0.000036  94.8677  94.8701  -0.0024  1
+  13   2   0   3  1.118350  1.118389 -0.000039 109.0971 109.0999  -0.0028  1
+  14   1   0   5  1.208636  1.208669 -0.000033 115.7417 115.7442  -0.0025  1
+  15   1   1   4  1.216517  1.216546 -0.000029 116.3381 116.3403  -0.0022  1
+  16   2   1   1  1.354788  1.354816 -0.000028 127.4274 127.4298  -0.0024  1
+  17   2   0   4  1.404277  1.404257  0.000020 131.7964 131.7946   0.0018  1
+  18   2   1   2  1.477339  1.477331  0.000008 138.8674 138.8666   0.0008  1
+
+ Number of observed lines .........:   18
+ Number of calculated lines .......:   18
+ Number of single indexed lines ...:   18
+ Number of unindexed lines ........:    0
+ M(18) =    453.2 Average epsilon =0.00003881
+ F(18) =      NaN (     NaN  42)
+ refine
+ a ......:   2.66517 +/-    0.00003    p/sig(p):    90832.2
+ b ......:   2.66517 +/-    0.00003    p/sig(p):    90832.2
+ c ......:   4.94841 +/-    0.00008    p/sig(p):    59206.1
+ alfa ...:  90.00000
+ beta ...:  90.00000
+ gamma ..: 120.00000
+ Volume .:    30.440
+
+\end{verbatim}
+
+\newpage
+\subsection{Zn plate erroneously mounted}
+
+Here below we show the least square refinement of peak positions from a zink metal sample that has been mounted with a height error of approximately 1 mm.
+
+\begin{verbatim}
+-------------------------------------------------------------------
+! Zink metal plate with an height error of 1 mm.
+
+sys hexagonal
+cell 2.67 2.67 4.95 90 90 120
+
+2theta
+
+!        2theta        FWHM
+!      --------       ------
+data    30.3783   !   0.1741 
+data    35.4024   !   0.1427 
+data    38.1250   !   0.1147 
+data    42.3673   !   0.1070 
+data    53.5081   !   0.1085 
+data    69.3260   !   0.1180 
+data    69.8942   !   0.1036 
+data    76.3302   !   0.1493 
+data    81.4050   !   0.1126 
+data    83.0828   !   0.1172 
+data    85.8844   !   0.1155 
+data    89.2725   !   0.1375 
+data    94.2751   !   0.1280 
+data   108.6014   !   0.1510 
+data   115.2959   !   0.2052 
+data   115.8977   !   0.1751 
+data   123.6069   !   0.1791 
+data   127.0606   !   0.1873 
+data   131.4636   !   0.2527 
+data   138.5914   !   0.2264 
+
+\end{verbatim}
+
+\newpage
+
+\begin{verbatim}
+! Set a huge error window parameter. 
+
+ Puder>delta 1
+ Puder>index
+ WARNING, indexes of line:   6 are not unique.
+ WARNING, indexes of line:   7 are not unique.
+
+ Puder>write
+   N   H   K   L     Q-obs    Q-calc     Q-del  2Th-obs 2Th-calc  2Th-del  #
+   1              0.115692                      30.3783                    0
+   2   0   0   2  0.155804  0.162717 -0.006912  35.4024  36.2058  -0.8034  1
+   3   1   0   0  0.179768  0.186771 -0.007003  38.1250  38.8898  -0.7648  1
+   4   1   0   1  0.220068  0.227450 -0.007381  42.3673  43.1068  -0.7395  1
+   5   1   0   2  0.341522  0.349487 -0.007966  53.5081  54.1789  -0.6708  1
+   6   1   0   3  0.545157  0.552883 -0.007726  69.3260  69.8864  -0.5604  1
+   7   1   0   3  0.552990  0.552883  0.000107  69.8942  69.8864   0.0078  2
+   8   0   0   4  0.643516  0.650866 -0.007350  76.3302  76.8440  -0.5138  1
+   9   1   1   2  0.716723  0.723028 -0.006305  81.4050  81.8383  -0.4333  1
+  10   2   0   0  0.741172  0.747082 -0.005910  83.0828  83.4874  -0.4046  1
+  11   2   0   1  0.782181  0.787761 -0.005580  85.8844  86.2647  -0.3803  1
+  12   1   0   4  0.831959  0.837637 -0.005678  89.2725  89.6586  -0.3861  1
+  13   2   0   2  0.905474  0.909799 -0.004325  94.2751  94.5700  -0.2949  1
+  14   2   0   3  1.111451  1.113194 -0.001744 108.6014 108.7265  -0.1251  1
+  15   1   0   5  1.202720  1.203749 -0.001029 115.2959 115.3733  -0.0774  2
+  16   1   1   4  1.210702  1.211178 -0.000476 115.8977 115.9337  -0.0360  2
+  17   2   1   0  1.309062  1.307394  0.001668 123.6069 123.4708   0.1361  1
+  18   2   1   1  1.350494  1.348073  0.002421 127.0606 126.8546   0.2060  1
+  19   2   0   4  1.400618  1.397949  0.002670 131.4636 131.2218   0.2418  1
+  20   2   1   2  1.474661  1.470110  0.004551 138.5914 138.1257   0.4657  1
+
+ Number of observed lines .........:   20
+ Number of calculated lines .......:   22
+ Number of single indexed lines ...:   16
+ Number of unindexed lines ........:    1
+
+ Puder>ref
+ a ......:   2.67140 +/-    0.00307    p/sig(p):      869.0
+ b ......:   2.67140 +/-    0.00307    p/sig(p):      869.0
+ c ......:   4.97979 +/-    0.01295    p/sig(p):      384.5
+ alfa ...:  90.00000
+ beta ...:  90.00000
+ gamma ..: 120.00000
+ Volume .:    30.776
+\end{verbatim}
+
+This shows that small zero point error gave a=2.66517(3) \AA{ } and c=4.94841(8) \AA{ } while a large error gave  a=2.671(3) \AA{ } and c=4.980(13) \AA{ }.
+Nearly the same parameter values on an absolute scale but rather much different regarding accuracy. 
+ 
+\newpage
+
+\chapter{Alphabetical list of commands}
+
+\begin{description}
+\item[2THETA or TWOHETA] 
+Set the spacing measure to be degrees two theta.
+
+\item[ADJUST]
+Adjust Q of one line if a higher order line can be found for that very line. A question regarding whether this line should be corrected or not, must be answered for each line. The default answer is NO and other possible answers are YES and QUIT.
+Answering YES corrects the line position with the help of the chosen higher order line and QUIT will quit the very adjustment routine.
+
+\item[CALC]
+Do some different calculations mostly connected with theoretical line positions for the present cell parameters.
+
+\item[CELL]
+Reading of cell parameters, either all 6 parameters: a, b, c, $\alpha$, $\beta$ and $\gamma$.
+If no parameters are given PUDER ask which of the present cell parameters that should be changed. 
+Just answer with return to quit this routine.
+
+\item[CLOSE]
+Close the log-file.
+
+\item[COMMENT]
+This command enables a comment to be written to the screen and the log-file.
+
+\item[CONDITION]
+Enter some reflection condition that should be used when generating the unique reflections.
+
+\item[CORRELATION]
+Write the elements of the correlation matrix.
+
+\item[CREATE]
+Create an input file to PUDER from the present data and state.
+All necessary parameters written to the file including wavelength and reflection conditions.
+
+\item[CYCLE]
+Run some number of iterative cell refinement with the present parameters.
+
+\item[DATA]
+This command indicates that spacing data follows.
+
+\item[DELTA]
+Sets the acceptance window in terms of $2\theta$. Default value is 0.1$^\circ$.
+
+\item[DOS]
+Issue an operating system command. Note that if PUDER is run on a windows machine all valid WINDOWS commands can be used. This may be an superfluous command...
+
+\item[DVALUES]
+Use d-values as spacing data
+
+\item[ESD]
+Set whether esd of observed spacing data are to be used when calculating the weights in  the least square process
+Used ESD ON if you want to use the supplied spacing data esd and use only ESD or ESD OFF to turn off the use of spacing esd's.
+
+\item[EXIT or END]
+Finish the program PUDER and return to operating system.
+
+\item[EXPORT]
+Export data to an external file with some specified format. 
+\begin{verbatim}
+SYNTAX:  Export Type Filename
+\end{verbatim}
+Supported formats (Type) are described in the following list:
+\begin{description}
+\item [SSQ :] First line is a title line and then on each of the following lines one Sine Square Theta value. 
+\item [2TH :] First line is a title line and then a  list of 2theta values, one for each line, possibly augmented  with other data present for each spacing value. The 2theta value should be the first value on each line.  
+\item [TRE :] Input file for the indexing program TREOR
+\item [LOU :] Input file for the indexing program DICVOL06
+\item [M :] output of the two vectors  $2\theta_{obs}$ and $2\theta_{calc}$ as xobs and xcalc for use  in Matlab or Octave.
+\end{description}
+
+\item[FILE]
+Execute command stored on a file. This is the recommended way of inserting data into PUDER. If spacing data etc. are read from keyboard the last command before exit should be the CREATE command in orde to store the data on a file for possible future use.
+
+\item[GIJ]
+Prints the $g_{ij}$ parameters to the screen.
+
+\item[GROUP] Enter space group symbol for deriving reflection conditions.
+
+\item[IMPORT]
+Import data from an external file with some other format. Supported formats are the following:
+\begin{description}
+\item [SSQ :] First line is a title line and then on the following lines one Sine Square Theta value [and FVAR] on each line. Free format.
+\item [2TH :] Only a list of 2theta values, one each line with other data possibly present for each spacing, after the 2theta value, that should be the first value on each line. Free format... 
+\end{description}
+
+\item[INDEX]
+Index the spacing data with the present cell parameters
+
+\item[INTERACTIVE]
+Enter interactive indexing routine. Not yet completed.
+
+\item[INVERSE]
+Write the elements of the inverse Hessian matrix.
+
+\item[HKLDATA]
+Enter HKL and spacing data.
+
+\item[LATTICE]
+Enter lattice centring, A, B, C, F, I or R
+
+\item[LOG]
+Open a log file. If no filename is given as parameter, PUDER ask for a filename.
+
+\item[LOCK]
+Lock the indexes of some line(s).
+
+\item[LSQSUM]
+Write some different sums in the least square process.
+
+\item[MERIT]
+Compute the different merit functions up to some line number.
+
+\item[NOTRACE]
+Turn of the trace function.
+
+\item[OPEN]
+
+\item[PCELL]
+Write the real cell parameters.
+
+\item[PCELL*]
+Write the reciprocal cell parameters.
+
+\item[PRINT]
+Print some different things. Real cell, reciprocal cell, reciprocal metric tensor and the spacing data. Perhaps an obsolete command.
+
+\item[QVALUES]
+Use Q values as spacing data. Q = 1/d2.
+
+\item[REFINE]
+Refine the cell parameters with the resent indexing and the constraints set by the crystal system.
+
+\item[RESET]
+Reset all parameters to default values.
+
+\item[RPN]
+Enter a simple RPN calculator system
+
+\item[SET]
+Set the values of some parameter.
+
+\item[SETHKL]
+Set the HKL values for some spacing line.
+
+\item[SSQVALUES or SSQTHETA]
+Use sine square theta as spacing measure.
+
+\item[STATUS]
+Write some status information.
+
+\item[SYSTEM]
+Set crystal system restrictions on cell parameters to be used in the refinements.
+
+\item[THETA]
+Use theta as spacing measure.
+
+\item[TRACE]
+Turn on the trace function. When reading data from file with the command FILE the echoed lines are halted every 20 lines. Similar to a ''more'' function .
+
+\item[TRANSFORM]
+Transform the indexes of the indexed spacing data.
+
+\item[UNLOCK]
+Unlock the indexes of some line(s) in order for them to be changed in  the indexing process.
+
+\item[USE]
+Set the maximum number of allowed different indexing of a line in order for it to be included in the least square calculations. The default value of USE is 1, i.e. only lines which are uniquely indexable are included in the refinements. If lines with several possible indexes are included the weight in the least square equations are decreased inversely proportional to the number of different indexes.
+
+\item[WDATA]
+Input of weighted spacing data:
+WDATA spacing 
+
+\item[WHKLDATA]
+Input of weighted spacing data with HKL values set:
+WHKLDATA h k l spacing esd fvar weight
+
+\item[VERBOSE]
+Use verbose listing in the indexing phase. Useful to see what different indexes a multiple indexed line have.
+
+\item[WAVE]
+Set the wavelength ($\lambda$) to be used in the calculation. OBS the wavelength cannot be changed when trying to calculate number of theoretical lines for another wavelength. The wavelength is only used when converting the 2theta values to d-values etc.
+
+\item[WEIGHT]
+Change the weighting scheme used in the refinements.
+
+\item[WRDEF]
+Define what should be written by default. The initial default values are:
+N, H, K, L, $Q_{obs}$, $Q_{calc}$, $Q_{diff}$, $2\theta_{obs}$, $2\theta_{calc}$, $2\theta_{diff}$, $N_{okay}$ and locked line indicator.
+
+\item[WRITE]
+Write the spacing data to the screen and possibly also to the log-file if it has been opened.
+
+\item[H00]
+Delimit the indexing to the H00 zone
+
+\item[0K0]
+Delimit the indexing to the 0K0 zone
+
+\item[00L]
+Delimit the indexing to the 00L zone
+
+\item[HK0]
+Delimit the indexing to the HK0 zone
+
+\item[0KL]
+Delimit the indexing to the 0KL zone
+
+\item[H0L]
+Delimit the indexing to the H0L zone
+
+\item[HKL]
+Allow all three indexes, i.e. do not delimit the indexing to any zone
+
+\end{description}
+
+
+
+\end{document}
