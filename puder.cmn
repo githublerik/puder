@@ -1,0 +1,82 @@
+c-----------------------------------------------------------------------
+c
+c --- Include file for the program PUDER.
+c
+c --- Parameters...
+c
+      parameter (max_xy_obs=30000)
+
+      parameter (maxhkl=1000)
+
+      parameter (ireset=0)
+      parameter (inormal=0)
+      parameter (ibright=1)
+      parameter (ibold=1)
+      parameter (idim=2)
+      parameter (iunderline=3)
+      parameter (iblink=5)
+      parameter (ireverse=6)
+      parameter (ihidden=7)
+
+      parameter (iblack=0)
+      parameter (ired=1)
+      parameter (igreen=2)
+      parameter (iyellow=3)
+      parameter (iblue=4)
+      parameter (imagenta=5)
+      parameter (icyan=6)
+      parameter (iwhite=7)
+c
+c --- Common blocks...
+c
+      common /grus00/ qobs(maxhkl),
+     >                qcalc(maxhkl),
+     >                qdel(maxhkl),
+     >                esdobs(maxhkl),
+     >                weight_from_esd(maxhkl),
+     >                weight(maxhkl),
+     >                freevar(maxhkl),
+     >                ih(maxhkl),
+     >                ik(maxhkl),
+     >                il(maxhkl),
+     >                nobs,
+     >                nokay(maxhkl),
+     >                ilock(maxhkl),
+     >                smdlsq(maxhkl),
+     >                smdl2t(maxhkl),
+     >                nxy,
+     >                xobs(max_xy_obs),yobs(max_xy_obs)
+
+      character       titstr*80,wr_default*80
+      logical         trace_flag,logfile_open
+      logical         use_esdobs_in_weights
+      common /grus01/ wave,cl2q,isyst,
+     >                delta_twotheta,
+     >                ilatt,linuse,
+     >                iwgtyp,use_esdobs_in_weights,
+     >                smallest_acceptable_esd,
+     >                iverb,titstr,ispctyp,wr_default,
+     >                n_part_to_read,i_part_typ(20),
+     >                ihmin,ihmax,ikmin,ikmax,ilmin,ilmax,
+     >                ihset,ikset,ilset,
+     >                trace_flag,ilogfl,logfile_open
+
+      character       space_group_symbol*80
+      common /grus02/ numext,ixs(50,5),space_group_symbol
+
+      common /grus03/ a,b,c,al,be,ga,
+     >                real_volume,
+     >                siga,sigb,sigc,sigal,sigbe,sigga,
+     >                ast,bst,cst,alst,best,gast,
+     >                reciprocal_volume,
+     >                sigast,sigbst,sigcst,sigalst,sigbest,siggast,
+     >                g11,g22,g33,g12,g13,g23,
+     >                sigg11,sigg22,sigg33,sigg12,sigg13,sigg23,
+     >                amat(6,6),bvec(6)
+
+      common /grus04/ Goodness_of_fit, corr_mat(6,6), n_corr_mat
+
+      common /grus05/ lukeys,ludisp,lubat,lubat2,
+     >                luinp,luout,lulog,lu_theo_hkl
+
+c-----------------------------------------------------------------------
